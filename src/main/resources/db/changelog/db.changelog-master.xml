@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!-- PSX owns sbsr_resp in dcre_pay. dcre_pay is a NEW database, so the table
+         arrives as ONE typed changeset rather than as CIX's four-file history of
+         retrofits: the 512-wide response_file and the replay-guard UNIQUE are
+         declared in the createTable, and CIX's 003-emission-fk has no successor
+         here at all (see 001-pay-sbsr-resp.xml). -->
+    <include file="db/changelog/2026/08/001-pay-sbsr-resp.xml"/>
+    <include file="db/changelog/2026/08/002-batch-metadata.xml"/>
+
+</databaseChangeLog>

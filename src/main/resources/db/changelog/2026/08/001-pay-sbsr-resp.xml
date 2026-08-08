@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+
+    <!--
+        The N/ACK response cylinder of the PAYMENTS family, in dcre_pay. PSX is
+        its single writer.
+
+        TABLE NAME: sbsr_resp, UNPREFIXED. All three family sheets label the
+        response cylinders identically (sbsr_resp, sbsr_resp, pbsr_resp) because
+        the DATABASE supplies the namespace. A pay_ prefix would duplicate the
+        context name in the table name, which the column-naming rule already
+        forbids, and would deviate from the diagram. dcre_man's man_*_resp is
+        that same deviation and is recorded as a mandates follow-up; it is not a
+        pattern to copy.
+
+        Typed tags only (pure-XML rule, persistence.md): CIX's 001 built this
+        table from a raw SQL body, which is the form the rule exists to stop.
+
+        Three CIX retrofits are folded in rather than carried:
+          - 003-emission-fk (emission_id + its index) is DROPPED, not moved. It
+            correlated a reply to a CRW emission batch, and crw_emission lives in
+            dcre_col, owned by collections. A reader in dcre_pay cannot read it,
+            and payments has no emission registry of its own yet (PRW is another
+            agent's scope). Fail-closed foreign-e2e filtering goes with it.
+          - 004-sbsr-resp-width: response_file is VARCHAR(512) from birth, matching
+            agt_ops file_arrival.physical_filename, so no widening ALTER and no
+            CockroachDB USING-clause workaround is ever needed.
+          - The BaseEntity columns are declared here instead of by a later ALTER.
+
+        Re-run safety uses onFail="CONTINUE", never MARK_RAN. MARK_RAN records the
+        skip PERMANENTLY, so a database that was merely not-yet-ready at the moment
+        of the check never receives the change at all; that shape has already cost
+        this project two defects (A-79, A-81). CONTINUE leaves the changeset
+        unlogged and re-evaluated on the next run.
+    -->
+    <changeSet id="psx-001-sbsr-resp" author="dcre">
+        <preConditions onFail="CONTINUE">
+            <not><tableExists tableName="sbsr_resp"/></not>
+        </preConditions>
+        <createTable tableName="sbsr_resp">
+            <column name="id" type="UUID" defaultValueComputed="gen_random_uuid()">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <!-- 512, not CIX's original 128: a long reply name registers in
+                 agt_ops (file_arrival.physical_filename is 512) and must not
+                 crash the reader insert afterwards. -->
+            <column name="response_file" type="VARCHAR(512)"><constraints nullable="false"/></column>
+            <column name="orgnl_msg_id" type="VARCHAR(35)"><constraints nullable="false"/></column>
+            <column name="e2e" type="VARCHAR(35)"><constraints nullable="false"/></column>
+            <column name="status" type="VARCHAR(8)"><constraints nullable="false"/></column>
+            <column name="reason" type="VARCHAR(8)"/>
+            <!-- BaseEntity (configuration.md point 20). -->
+            <column name="version" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="TIMESTAMPTZ" defaultValueComputed="now()">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+        <rollback>
+            <dropTable tableName="sbsr_resp"/>
+        </rollback>
+    </changeSet>
+
+    <!-- The idempotency key IS the row's FULL business identity: which reply file
+         carried the verdict, and which end-to-end transaction it answers. CRDB's
+         UPSERT resolves on the PRIMARY KEY only, so the reader's
+         INSERT ... ON CONFLICT (response_file, e2e) needs this constraint to
+         exist or a restarted slice duplicates instead of rewriting. Narrowing it
+         to e2e alone would let a later reply file's verdict silently overwrite an
+         earlier file's, reporting success; that class of key has bitten this
+         project twice. -->
+    <changeSet id="psx-001-sbsr-resp-identity" author="dcre">
+        <preConditions onFail="CONTINUE">
+            <not><indexExists tableName="sbsr_resp" indexName="uq_pay_sbsr_resp_file_e2e"/></not>
+        </preConditions>
+        <addUniqueConstraint tableName="sbsr_resp" columnNames="response_file, e2e"
+                             constraintName="uq_pay_sbsr_resp_file_e2e"/>
+        <rollback>
+            <dropUniqueConstraint tableName="sbsr_resp" constraintName="uq_pay_sbsr_resp_file_e2e"/>
+        </rollback>
+    </changeSet>
+
+</databaseChangeLog>
