@@ -79,8 +79,8 @@ runs with no `.env` at all.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `DCRE_PAY_DB_URL` | `jdbc:postgresql://localhost:26257/dcre_pay?sslmode=disable` | Payments database |
-| `DCRE_PAY_DB_USER` / `DCRE_PAY_DB_PASSWORD` | `root` / empty | Payments credentials |
+| `DCRE_DB_URL` | `jdbc:postgresql://localhost:26257/dcre_pay?sslmode=disable` | Payments database |
+| `DCRE_DB_USER` / `DCRE_DB_PASSWORD` | `root` / empty | Payments credentials |
 | `DCRE_AGTOPS_DB_URL` | `.../agt_ops` | Heartbeat liveness stamp |
 | `DCRE_EXCHANGE_ROOT` | six `../` to `infra/dcre-infra/exchange` | Outcome seam root |
 | `DCRE_PSX_INGEST_SLICE_SIZE` | `10000` | Rows per committed ingest slice (SCRUM-42) |

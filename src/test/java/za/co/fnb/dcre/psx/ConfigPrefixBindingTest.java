@@ -87,16 +87,21 @@ class ConfigPrefixBindingTest {
     }
 
     /**
-     * The datasource points at dcre_pay, and the placeholder is the PAY one.
-     * Reading DCRE_DB_URL here would silently inherit the collections URL from a
-     * shared environment and write payments verdicts into dcre_col.
+     * The datasource points at dcre_pay through DCRE_DB_URL, which is the name AGT
+     * injects into every stage Job it launches; AGT routes the VALUE per family, so one
+     * variable serves all three families and a per-family variable name is a name nobody
+     * sets. PSX read DCRE_PAY_DB_URL until SCRUM-107 and nothing anywhere set it, so in a
+     * pod it fell back to the committed localhost default, which is the pod itself.
+     *
+     * <p>ONE-SIDED: nothing here can see AGT, so this pins PSX's half of the contract
+     * only. See pai's AgtWireContractTest for the full statement of that limit.
      */
     @Test
     void theDatasourceTargetsDcrePayThroughThePayEnvironmentVariable() throws Exception {
         String url = String.valueOf(applicationYml().getProperty("spring.datasource.url"));
         assertThat(url)
-                .as("PSX must take the PAY database URL variable, not the collections one")
-                .startsWith("${DCRE_PAY_DB_URL:");
+                .as("PSX must read the exact variable name AGT injects into stage Jobs")
+                .startsWith("${DCRE_DB_URL:");
         assertThat(url)
                 .as("the committed dev default must be dcre_pay")
                 .contains("/dcre_pay?");
