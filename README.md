@@ -106,6 +106,7 @@ this project two defects (A-79, A-81).
   `dcre-platform-model`, then `dcre-platform-files`, then `dcre-platform-batch` (batch brings files
   and model transitively); `dcre-platform-persistence` is standalone.
 - For a real run: a reachable CockroachDB (the `dcre-infra` kind cluster locally)
+- The `dcre_pay` database must be created by hand (`CREATE DATABASE IF NOT EXISTS dcre_pay;`): dcre-infra's `scripts/crdb-init.sql` creates only `dcre_col`, `agt_ops` and `dcre_man` (checked 2026-09-28).
 
 ## Quickstart
 
